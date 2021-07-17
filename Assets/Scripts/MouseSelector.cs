@@ -8,31 +8,26 @@ public class MouseSelector : Commander
     Camera cam;
     public LayerMask selectableMask;
     public Waypoint waypointPrefab;
-    public Transform cubeTransform;
+    public GameObject selectBoxUI;
+    private RectTransform selectBoxRectTrans;
 
     private void Awake()
     {
         if (cam == null) { cam = GetComponent<Camera>(); }
-
+        Debug.Assert(selectBoxUI != null, "hey I need a ui panel to show u selections with. set my selectboxui field plz thx");
+        if(selectBoxRectTrans == null) { selectBoxRectTrans = selectBoxUI.GetComponent<RectTransform>(); }
     }
 
-
-
-    private Vector3 firstSelectCorner;
+    Vector3 firstSelectCorner;
     private HashSet<Collider> checkedColliders = new HashSet<Collider>();
     // Update is called once per frame
     void Update()
     {
         if (Input.GetMouseButtonDown(0))
         {
-            RaycastHit hit;
-            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-
-			if (Physics.Raycast(ray, out hit))
-			{
-				firstSelectCorner = hit.point;
-			}
-
+            ShowSelectRect(Input.mousePosition);
+            Physics.Raycast(cam.ScreenPointToRay(Input.mousePosition), out RaycastHit firstShothit);
+            firstSelectCorner = firstShothit.point;
 			foreach (var unit in selecteds)
 			{
                 unit.selected = false;
@@ -42,18 +37,24 @@ public class MouseSelector : Commander
 
 		if (Input.GetMouseButton(0))
         {
+            UpdateSelectRect(Input.mousePosition);
             RaycastHit hit;
             Ray ray = cam.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out hit))
             {
-                var collideds = Physics.OverlapBox((hit.point + firstSelectCorner) / 2f, (hit.point - firstSelectCorner) + Vector3.up*20, Quaternion.identity, selectableMask);
-                cubeTransform.position = (hit.point + firstSelectCorner) / 2f;
-                    cubeTransform.localScale = (hit.point - firstSelectCorner) + Vector3.up * 20;
+				Vector3 center = (hit.point + firstSelectCorner) / 2f;
+                Vector3 diagonalDiff = hit.point - firstSelectCorner;
+                Vector3 absedDiff = new Vector3(Mathf.Abs(diagonalDiff.x), Mathf.Abs(diagonalDiff.y), Mathf.Abs(diagonalDiff.z));
+                Vector3 extents = (absedDiff)/2f + Vector3.up * 200;
+
+                var collideds = Physics.OverlapBox(center, extents*2f, Quaternion.identity, selectableMask);;
+
                 foreach (Collider col in collideds)
 				{
 					if (!checkedColliders.Contains(col))
 					{
                         Debug.Log(col.name);
+                        
                         var clickable = col.GetComponent<Clickable>();
                         if (clickable != null)
                         {
@@ -69,9 +70,6 @@ public class MouseSelector : Commander
         }
 		if (Input.GetMouseButtonUp(0))
 		{
-
-            cubeTransform.position -= Vector3.up * 100;
-            Debug.Log("dropped");
             checkedColliders = new HashSet<Collider>();
 		}
 
@@ -94,4 +92,23 @@ public class MouseSelector : Commander
             }
         }
     }
+
+    private Vector2 firstMousePos;
+    void ShowSelectRect(Vector2 mousePos)
+	{
+        selectBoxUI.SetActive(true);
+        firstMousePos = mousePos;
+	}
+
+    void UpdateSelectRect(Vector2 mousePos)
+	{
+        var diff = mousePos - firstMousePos;
+        selectBoxRectTrans.anchoredPosition = firstMousePos + diff / 2f;
+        selectBoxRectTrans.sizeDelta = new Vector2(Mathf.Abs(diff.x), Mathf.Abs(diff.y));
+	}
+
+	void HideSelectRect()
+	{
+        selectBoxUI.SetActive(false);
+	}
 }

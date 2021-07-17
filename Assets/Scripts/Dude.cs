@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class Dude : Clickable
 {
-    Vector3 target;
     Rigidbody myRigidbody;
     Queue<Waypoint> orderQueue = new Queue<Waypoint>();
 
@@ -48,5 +47,10 @@ public class Dude : Clickable
 	public override void TakeWaypoint(Waypoint newPoint)
 	{
         orderQueue.Enqueue(newPoint);
+	}
+
+    void showSelected()
+	{
+        //thought bubble? outline highlight?
 	}
 }
